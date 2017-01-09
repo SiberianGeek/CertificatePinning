@@ -11,38 +11,18 @@
 
 @interface ViewController ()
 
+@property (nonatomic, strong) NSURLSessionTask* task;
+
+- (void) startRequest;
+- (void) stopRequest;
+
 @end
 
 @implementation ViewController
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-    
-    NSURLRequest* demoRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:@"https://github.com/SiberianGeek/CertificatePinning.git"]];
-    
-    NSURLResponse* demoResponse = nil;
-    NSError* error = nil;
-    
-    NSData* responseData = [self sendSynchronousRequest:demoRequest
-                                      returningResponse:&demoResponse
-                                                  error:&error];
-    
-    NSLog(@"Request:%@\nResponse:%@\nError:%@\nData:%@\n", demoRequest, demoResponse, error, responseData);
-    
-    // Do any additional setup after loading the view, typically from a nib.
-}
-- (NSData *)sendSynchronousRequest:(NSURLRequest *)request
-                 returningResponse:(NSURLResponse **)response
-                             error:(NSError **)error
+- (void) startRequest
 {
-    dispatch_group_t group = dispatch_group_create();
-    dispatch_group_enter(group);
-    
-    
-    NSError __block *err = NULL;
-    NSData __block *data;
-    NSURLResponse __block *resp;
+    [self stopRequest];
     
     NSURLSessionConfiguration* sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
     SGSessionDelegate* sessionDelegate = [[SGSessionDelegate alloc] init];
@@ -50,41 +30,35 @@
                                                           delegate:sessionDelegate
                                                      delegateQueue:nil];
     
+    NSURL* url = [NSURL URLWithString:@"https://github.com/SiberianGeek/CertificatePinning.git"];
+    NSURLRequest* demoRequest = [NSURLRequest requestWithURL:url];
     
-    NSURLSessionTask* task = [session dataTaskWithRequest:request
+    
+    NSURLSessionTask* task = [session dataTaskWithRequest:demoRequest
                                         completionHandler:^(NSData* _data, NSURLResponse* _response, NSError* _error) {
-                                            resp = _response;
-                                            err = _error;
-                                            data = _data;
-                                            dispatch_group_leave(group);
-                                            
+                                            NSLog(@"Response:%@\nError:%@\n", _response, _error);
                                         }];
-    
     [task resume];
-    
-    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    
-    if (err)
-    {
-        NSLog(@"Request failed:%@\nError:%@", request, err);
-        if (error) {
-            *error = err;
-        }
-        
-    }
-    
-    if (response)
-    {
-        *response = resp;
-    }
-    
-    return data;
 }
 
+- (void) stopRequest
+{
+    if (self.task) {
+        [self.task suspend];
+        self.task = nil;
+    }
+}
 
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
+- (void) viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self startRequest];
+}
+
+- (void) viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    [self stopRequest];
 }
 
 
